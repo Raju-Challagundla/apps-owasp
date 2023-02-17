@@ -65,7 +65,8 @@ public class GitScannerApplication {
             
             String reportPath = htmlFiles.get(0);
             String report = Files.readString(Paths.get(reportPath));
-            System.out.println(report);
+            System.out.println(report); //                <skipVulnerabilityAnalysis>true</skipVulnerabilityAnalysis>
+
         }
     }
 }
