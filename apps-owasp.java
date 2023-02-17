@@ -65,7 +65,14 @@ public class GitScannerApplication {
             
             String reportPath = htmlFiles.get(0);
             String report = Files.readString(Paths.get(reportPath));
-            System.out.println(report); //                <skipVulnerabilityAnalysis>true</skipVulnerabilityAnalysis>
+            System.out.println(report); //                <skipVulnerabilityAnalysis>true</skipVulnerabilityAnalysis><skip>false</skip>
+                //<skipCheck>${dependency-check.skip}</skipCheck>
+                //<suppressionFiles>${basedir}/dependency-check-suppression.xml</suppressionFiles>
+                //<format>HTML</format>
+                //<outputDirectory>${project.build.directory}/dependency-check-report</outputDirectory>
+                //<nexusUrl>http://your/nexus/url</nexusUrl>
+                //<nexusUsesProxy>false</nexusUsesProxy>
+                //<skipVulnerabilityAnalysis>true</skipVulnerabilityAnalysis>
 
         }
     }
