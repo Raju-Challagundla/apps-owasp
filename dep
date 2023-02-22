@@ -1,8 +1,8 @@
 @echo off
 setlocal enabledelayedexpansion
 
-rem Prompt the user to enter the repository URLs and branch names
-set /p repos=Enter the repository URLs and branch names (e.g. git@github.com:username/repo1.git:main git@github.com:username/repo2.git:develop):
+rem Prompt the user to enter the repository names and branch names
+set /p repos=Enter the repository names and branch names (e.g. username/repo1:main username/repo2:develop):
 
 rem Set the Maven command to run
 set mvn_command=mvn -f pom.xml dependency:list -DincludeScope=runtime -DoutputFile=- -DoutputAbsoluteArtifactFilename=true -DoutputAbsoluteVersion=true
@@ -10,17 +10,19 @@ set mvn_command=mvn -f pom.xml dependency:list -DincludeScope=runtime -DoutputFi
 rem Set the output file name
 set mvn_output_file=maven-dependencies.csv
 
-rem Loop through each repository URL and branch name
-for %%r in (%repos%) do (
-    rem Extract the repository name from the URL
-    for /f "tokens=2 delims=:/" %%i in ("%%~r") do set repo_name=%%i
-    set repo_name=!repo_name:.git=!
+rem Set the repository host
+set repo_host=github.com
 
-    rem Split the URL and branch name
-    for /f "tokens=2 delims=:" %%u in ("%%~r") do set branch_name=%%u
+rem Loop through each repository name and branch name
+for %%r in (%repos%) do (
+    rem Extract the repository name and branch name from the input
+    for /f "tokens=1,2 delims=:" %%i in ("%%~r") do (
+        set repo_name=%%i
+        set branch_name=%%j
+    )
 
     rem Clone the repository and checkout the specified branch
-    git clone --depth=1 --branch !branch_name! --single-branch %%~r /tmp/!repo_name!
+    git clone --depth=1 --branch !branch_name! --single-branch git@!repo_host!:!repo_name!.git /tmp/!repo_name!
 
     rem Change to the repository directory
     cd /tmp/!repo_name!
