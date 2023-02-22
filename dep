@@ -1,35 +1,36 @@
 @echo off
 setlocal enabledelayedexpansion
 
-rem Prompt the user to enter the repository URL and branch name
-set /p repo_url=Enter the repository URL (e.g. git@github.com:username/my-repo.git):
-set /p branch_name=Enter the branch name (e.g. main):
-
-rem Extract the repository name from the URL
-for /f "tokens=2 delims=:/" %%i in ("%repo_url%") do set repo_name=%%i
-set repo_name=%repo_name:.git=%
+rem Prompt the user to enter the repository URLs and branch names
+set /p repos=Enter the repository URLs and branch names (e.g. git@github.com:username/repo1.git:main git@github.com:username/repo2.git:develop):
 
 rem Set the Maven command to run
-set mvn_command=mvn org.apache.maven.plugins:maven-dependency-plugin:3.1.2:list -DincludeScope=runtime -DoutputFile=maven-dependencies.txt
+set mvn_command=mvn -f pom.xml dependency:list -DincludeScope=runtime -DoutputFile=- -DoutputAbsoluteArtifactFilename=true -DoutputAbsoluteVersion=true
 
 rem Set the output file name
 set mvn_output_file=maven-dependencies.csv
 
-rem Clone the repository and checkout the specified branch
-git clone --depth=1 %repo_url% /tmp/%repo_name%
-cd /tmp/%repo_name%
-git checkout %branch_name%
+rem Loop through each repository URL and branch name
+for %%r in (%repos%) do (
+    rem Extract the repository name from the URL
+    for /f "tokens=2 delims=:/" %%i in ("%%~r") do set repo_name=%%i
+    set repo_name=!repo_name:.git=!
 
-rem List the Maven dependencies and write to CSV
-%mvn_command%
-for /f "tokens=1,2,3" %%a in ('type maven-dependencies.txt ^| findstr /C:"jar" /C:"Provided"') do (
-    set "version=%%b"
-    set "jar_name=%%c"
-    echo !version!,!jar_name! >> %mvn_output_file%
+    rem Split the URL and branch name
+    for /f "tokens=2 delims=:" %%u in ("%%~r") do set branch_name=%%u
+
+    rem Clone the repository and checkout the specified branch
+    git clone --depth=1 --branch !branch_name! --single-branch %%~r /tmp/!repo_name!
+
+    rem Change to the repository directory
+    cd /tmp/!repo_name!
+
+    rem List the Maven dependencies and write to CSV
+    %mvn_command% | findstr /i ".jar" > %mvn_output_file%
+
+    rem Delete the temporary directory
+    cd ..
+    rmdir /s /q !repo_name!
 )
-
-rem Delete the temporary directory
-cd ..
-rmdir /s /q %repo_name%
 
 echo Done!
