@@ -1,50 +1,30 @@
 @echo off
-setlocal enabledelayedexpansion
 
-rem Prompt the user to enter the repository URL and branch name
-set /p repo_url=Enter the repository URL (e.g. git@github.com:username/my-repo.git):
-set /p branch_name=Enter the branch name (e.g. main):
+echo Enter type of project:
+set /p project_type=
 
-rem Extract the repository name from the URL
-for /f "tokens=2 delims=:/" %%i in ("%repo_url%") do set repo_name=%%i
-set repo_name=%repo_name:.git=%
+echo Enter repository URL:
+set /p repo_url=
 
-rem Prompt the user to enter the type of project (Maven or Angular)
-set /p project_type=Enter the type of project (Maven or Angular):
+echo Enter branch name:
+set /p branch_name=
 
-rem Check out the repository for the specified branch
-mkdir /tmp/%repo_name%
-cd /tmp/%repo_name%
-git clone %repo_url% -b %branch_name% --single-branch --depth=1 .
-
-if /i "%project_type%"=="Maven" (
-  rem Set the command to run for Maven
-  set mvn_command=mvn dependency:list -DoutputFile=dependencies.csv
-
-  rem Set the output file name for Maven
-  set mvn_output_file=dependencies.csv
-
-  rem Check out only the pom.xml file
-  git checkout %branch_name% -- pom.xml
-
-  rem Run the Maven command
-  %mvn_command%
-) else if /i "%project_type%"=="Angular" (
-  rem Set the command to run for Angular
-  set ng_command=ng list --prod --json
-
-  rem Set the output file name for Angular
-  set ng_output_file=angular-dependencies.txt
-
-  rem Check out only the package.json file
-  git checkout %branch_name% -- package.json
-
-  rem Run the Angular command
-  %ng_command% > %ng_output_file%
+if /i "%project_type%"=="maven" (
+  set repo_folder=maven-repo
+  set dependencies_file=maven-dependencies.csv
+  git clone --branch %branch_name% %repo_url% %repo_folder%
+  cd %repo_folder%
+  mvn dependency:list -DoutputFile=%dependencies_file%
+) else if /i "%project_type%"=="npm" (
+  set repo_folder=npm-repo
+  set dependencies_file=npm-dependencies.csv
+  git clone --branch %branch_name% %repo_url% %repo_folder%
+  cd %repo_folder%
+  npm install
+  npm list --prod --parseable --depth=0 > %dependencies_file%
+) else (
+  echo Invalid project type. Please enter either "maven" or "npm".
+  exit /b 1
 )
 
-rem Delete the temporary directory
-cd ..
-rmdir /s /q %repo_name%
-
-echo Done!
+echo Dependencies saved to %dependencies_file%
