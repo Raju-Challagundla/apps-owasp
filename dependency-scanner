@@ -9,30 +9,38 @@ rem Extract the repository name from the URL
 for /f "tokens=2 delims=:/" %%i in ("%repo_url%") do set repo_name=%%i
 set repo_name=%repo_name:.git=%
 
-rem Set the Maven command to run
-set mvn_command=mvn dependency:list -DincludeScope=runtime -DoutputType=csv
+rem Prompt the user to enter the type of project (Maven or Angular)
+set /p project_type=Enter the type of project (Maven or Angular):
 
-rem Set the npm command to run
-set npm_command=npm ls --depth=0 --prod --json
-
-rem Set the output file names
-set mvn_output_file=maven-dependencies.csv
-set npm_output_file=npm-dependencies.csv
-
-rem Clone the repository and checkout the specified branch
-git clone --depth=1 %repo_url% /tmp/%repo_name%
+rem Check out the repository for the specified branch
+mkdir /tmp/%repo_name%
 cd /tmp/%repo_name%
-git checkout %branch_name%
+git clone %repo_url% -b %branch_name% --single-branch --depth=1 .
 
-rem List the Maven dependencies and write to CSV
-%mvn_command% > %mvn_output_file%
+if /i "%project_type%"=="Maven" (
+  rem Set the command to run for Maven
+  set mvn_command=mvn dependency:list -DoutputFile=dependencies.csv
 
-rem List the Angular dependencies and write to CSV
-%npm_command% > %npm_output_file%
-for /f "tokens=2,3,4,5 delims=\":{}," %%d in ('type %npm_output_file% ^| findstr /C:"\"name\":"') do (
-    set "name=%%~d"
-    set "version=%%~f"
-    echo !name!,!version! >> %npm_output_file%.csv
+  rem Set the output file name for Maven
+  set mvn_output_file=dependencies.csv
+
+  rem Check out only the pom.xml file
+  git checkout %branch_name% -- pom.xml
+
+  rem Run the Maven command
+  %mvn_command%
+) else if /i "%project_type%"=="Angular" (
+  rem Set the command to run for Angular
+  set ng_command=ng list --prod --json
+
+  rem Set the output file name for Angular
+  set ng_output_file=angular-dependencies.txt
+
+  rem Check out only the package.json file
+  git checkout %branch_name% -- package.json
+
+  rem Run the Angular command
+  %ng_command% > %ng_output_file%
 )
 
 rem Delete the temporary directory
