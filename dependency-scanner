@@ -1,0 +1,41 @@
+@echo off
+setlocal enabledelayedexpansion
+
+rem Set the list of Git repositories to scan
+set repos=repo1.git repo2.git repo3.git
+
+rem Set the Maven command to run
+set mvn_command=mvn dependency:list -DincludeScope=runtime -DoutputType=csv
+
+rem Set the npm command to run
+set npm_command=npm ls --depth=0 --prod --json
+
+rem Set the output file names
+set mvn_output_file=maven-dependencies.csv
+set npm_output_file=npm-dependencies.csv
+
+rem Loop over each repository
+for %%r in (%repos%) do (
+    rem Clone the repository
+    git clone --depth=1 https://github.com/username/%%r /tmp/%%~nr
+
+    rem Change to the repository directory
+    cd /tmp/%%~nr
+
+    rem List the Maven dependencies and write to CSV
+    %mvn_command% > %mvn_output_file%
+
+    rem List the Angular dependencies and write to CSV
+    %npm_command% > %npm_output_file%
+    for /f "tokens=2,3,4,5 delims=\":{}," %%d in ('type %npm_output_file% ^| findstr /C:"\"name\":"') do (
+        set "name=%%~d"
+        set "version=%%~f"
+        echo !name!,!version! >> %npm_output_file%.csv
+    )
+
+    rem Delete the temporary directories
+    cd ..
+    rmdir /s /q %%~nr
+)
+
+echo Done!
