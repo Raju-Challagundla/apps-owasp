@@ -1,0 +1,30 @@
+@echo off
+setlocal enabledelayedexpansion
+
+rem Prompt the user to enter the repository URL and branch name
+set /p repo_url=Enter the repository URL (e.g. git@github.com:username/my-repo.git):
+set /p branch_name=Enter the branch name (e.g. main):
+
+rem Extract the repository name from the URL
+for /f "tokens=2 delims=:/" %%i in ("%repo_url%") do set repo_name=%%i
+set repo_name=%repo_name:.git=%
+
+rem Set the Maven command to run
+set mvn_command=mvn dependency:list -DincludeScope=runtime -DoutputType=csv
+
+rem Set the output file name
+set mvn_output_file=maven-dependencies.csv
+
+rem Clone the repository and checkout the specified branch
+git clone --depth=1 %repo_url% /tmp/%repo_name%
+cd /tmp/%repo_name%
+git checkout %branch_name% -- pom.xml
+
+rem List the Maven dependencies and write to CSV
+%mvn_command% > %mvn_output_file%
+
+rem Delete the temporary directory
+cd ..
+rmdir /s /q %repo_name%
+
+echo Done!
