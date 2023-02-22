@@ -1,30 +1,35 @@
 @echo off
+setlocal enabledelayedexpansion
 
-echo Enter type of project:
-set /p project_type=
+rem Prompt the user to enter the repository URL and branch name
+set /p repo_url=Enter the repository URL (e.g. git@github.com:username/my-repo.git):
+set /p branch_name=Enter the branch name (e.g. main):
 
-echo Enter repository URL:
-set /p repo_url=
+rem Extract the repository name from the URL
+for /f "tokens=2 delims=:/" %%i in ("%repo_url%") do set repo_name=%%i
+set repo_name=%repo_name:.git=%
 
-echo Enter branch name:
-set /p branch_name=
+rem Set the Maven command to run
+set mvn_command=mvn dependency:list -DincludeScope=runtime -DoutputType=csv
 
-if /i "%project_type%"=="maven" (
-  set repo_folder=maven-repo
-  set dependencies_file=maven-dependencies.csv
-  git clone --branch %branch_name% %repo_url% %repo_folder%
-  cd %repo_folder%
-  mvn dependency:list -DoutputFile=%dependencies_file%
-) else if /i "%project_type%"=="npm" (
-  set repo_folder=npm-repo
-  set dependencies_file=npm-dependencies.csv
-  git clone --branch %branch_name% %repo_url% %repo_folder%
-  cd %repo_folder%
-  npm install
-  npm list --prod --parseable --depth=0 > %dependencies_file%
-) else (
-  echo Invalid project type. Please enter either "maven" or "npm".
-  exit /b 1
-)
+rem Set the output file name
+set mvn_output_file=maven-dependencies.csv
 
-echo Dependencies saved to %dependencies_file%
+rem Check out the POM file for the specified branch
+mkdir /tmp/%repo_name%
+cd /tmp/%repo_name%
+git init
+git remote add origin %repo_url%
+git config core.sparseCheckout true
+echo pom.xml >> .git/info/sparse-checkout
+git fetch --depth=1 origin %branch_name%
+git checkout %branch_name%
+
+rem List the Maven dependencies and write to CSV
+%mvn_command% > %mvn_output_file%
+
+rem Delete the temporary directory
+cd ..
+rmdir /s /q %repo_name%
+
+echo Done!
