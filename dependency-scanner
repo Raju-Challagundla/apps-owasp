@@ -1,9 +1,13 @@
 @echo off
 setlocal enabledelayedexpansion
 
-rem Prompt the user to enter the repository name and branch name
-set /p repo_name=Enter the repository name (e.g. my-repo.git):
+rem Prompt the user to enter the repository URL and branch name
+set /p repo_url=Enter the repository URL (e.g. https://github.com/username/my-repo.git):
 set /p branch_name=Enter the branch name (e.g. main):
+
+rem Extract the repository name from the URL
+for /f "tokens=3 delims=/" %%i in ("%repo_url%") do set repo_name=%%i
+set repo_name=%repo_name:.git=%
 
 rem Set the Maven command to run
 set mvn_command=mvn dependency:list -DincludeScope=runtime -DoutputType=csv
@@ -16,7 +20,7 @@ set mvn_output_file=maven-dependencies.csv
 set npm_output_file=npm-dependencies.csv
 
 rem Clone the repository and checkout the specified branch
-git clone --depth=1 https://github.com/username/%repo_name% /tmp/%repo_name%
+git clone --depth=1 %repo_url% /tmp/%repo_name%
 cd /tmp/%repo_name%
 git checkout %branch_name%
 
