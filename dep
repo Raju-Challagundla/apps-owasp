@@ -10,19 +10,23 @@ for /f "tokens=2 delims=:/" %%i in ("%repo_url%") do set repo_name=%%i
 set repo_name=%repo_name:.git=%
 
 rem Set the Maven command to run
-set mvn_command=mvn -f pom.xml dependency:list -DincludeScope=runtime -DoutputFile=- -DoutputAbsoluteArtifactFilename=true -DoutputAbsoluteVersion=true
+set mvn_command=mvn org.apache.maven.plugins:maven-dependency-plugin:3.1.2:list -DincludeScope=runtime -DoutputFile=maven-dependencies.txt
 
 rem Set the output file name
 set mvn_output_file=maven-dependencies.csv
 
 rem Clone the repository and checkout the specified branch
-git clone --depth=1 --branch %branch_name% --single-branch %repo_url% /tmp/%repo_name%
-
-rem Change to the repository directory
+git clone --depth=1 %repo_url% /tmp/%repo_name%
 cd /tmp/%repo_name%
+git checkout %branch_name%
 
 rem List the Maven dependencies and write to CSV
-%mvn_command% | findstr /i ".jar" > %mvn_output_file%
+%mvn_command%
+for /f "tokens=1,2,3" %%a in ('type maven-dependencies.txt ^| findstr /C:"jar" /C:"Provided"') do (
+    set "version=%%b"
+    set "jar_name=%%c"
+    echo !version!,!jar_name! >> %mvn_output_file%
+)
 
 rem Delete the temporary directory
 cd ..
