@@ -1,38 +1,64 @@
 @echo off
 setlocal enabledelayedexpansion
 
-rem Prompt the user to enter the repository names and branch names
-set /p repos=Enter the repository names and branch names (e.g. username/repo1:main username/repo2:develop):
-
-rem Set the Maven command to run
-set mvn_command=mvn -f pom.xml dependency:list -DincludeScope=runtime -DoutputFile=- -DoutputAbsoluteArtifactFilename=true -DoutputAbsoluteVersion=true
+rem Prompt the user to enter the repository URLs and branch names
+set /p repos=Enter the repository URLs and branch names (e.g. git@github.com:username/repo1.git:main git@github.com:username/repo2.git:develop):
 
 rem Set the output file name
 set mvn_output_file=maven-dependencies.csv
+set npm_output_file=npm-dependencies.csv
+set libs_output_file=ui-dependencies.csv
 
-rem Set the repository host
-set repo_host=github.com
+rem Delete the output file if it exists
+if exist %mvn_output_file% del %mvn_output_file%
+if exist %npm_output_file% del %npm_output_file%
+if exist %libs_output_file% del %libs_output_file%
 
-rem Loop through each repository name and branch name
+rem Loop through each repository URL and branch name
 for %%r in (%repos%) do (
-    rem Extract the repository name and branch name from the input
-    for /f "tokens=1,2 delims=:" %%i in ("%%~r") do (
-        set repo_name=%%i
-        set branch_name=%%j
-    )
+    rem Extract the repository name from the URL
+    for /f "tokens=2 delims=:/" %%i in ("%%~r") do set repo_name=%%i
+    set repo_name=!repo_name:.git=!
+
+    rem Split the URL and branch name
+    for /f "tokens=2 delims=:" %%u in ("%%~r") do set branch_name=%%u
 
     rem Clone the repository and checkout the specified branch
-    git clone --depth=1 --branch !branch_name! --single-branch git@!repo_host!:!repo_name!.git /tmp/!repo_name!
+    git clone --depth=1 --branch !branch_name! --single-branch %%~r /tmp/!repo_name!
 
-    rem Change to the repository directory
-    cd /tmp/!repo_name!
+    rem Check if pom.xml or package.json exists in the repository and execute the appropriate command
+    if exist /tmp/!repo_name!/pom.xml (
+        rem Set the Maven command to run
+        set mvn_command=mvn -f pom.xml dependency:list -DincludeScope=runtime -DoutputFile=- -DoutputAbsoluteArtifactFilename=true -DoutputAbsoluteVersion=true
 
-    rem List the Maven dependencies and write to CSV
-    %mvn_command% | findstr /i ".jar" > %mvn_output_file%
+        rem Change to the repository directory
+        cd /tmp/!repo_name!
 
-    rem Delete the temporary directory
-    cd ..
-    rmdir /s /q !repo_name!
-)
+        rem List the Maven dependencies and write to CSV
+        %mvn_command% | findstr /i ".jar" | for /f "tokens=1-3,* delims=," %%a in ('more') do (
+            set "version=%%c"
+            set "version=!version:[INFO]=!"
+            set "version=!version: =!"
+            echo !repo_name!,%%a,%%b,!version!
+        ) >> %mvn_output_file%
+        
+        rem Change back to the parent directory
+        cd ..
+    ) else if exist /tmp/!repo_name!/package.json (
+        rem Change to the repository directory
+        cd /tmp/!repo_name!
 
-echo Done!
+        rem Install dependencies and list them in CSV format
+        npm install --only=prod
+        npm ls --prod --parseable | findstr /i "node_modules" | findstr /vi "/node_modules/" | for /f "tokens=2,3,* delims=/" %%a in ('more') do (
+            echo !repo_name!,%%c,%%b,%%a
+        ) >> %npm_output_file%
+        
+        rem Change back to the parent directory
+        cd ..
+    )
+
+    rem Check if libs folder exists in the repository and scan it for library files
+    if exist /tmp/!repo_name!/libs (
+        rem Change to the repository directory
+        cd /tmp/!
