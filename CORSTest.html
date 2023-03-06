@@ -1,0 +1,44 @@
+<html>
+<head>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <div class="row mt-4">
+      <div class="col-8">
+        <input type="text" id="url-input" class="form-control" placeholder="Enter URL" value="https://jsonplaceholder.typicode.com/todos/1">
+      </div>
+      <div class="col-4">
+        <button id="submit-button" class="btn btn-primary btn-block">Submit</button>
+      </div>
+    </div>
+    <div class="row mt-4">
+      <div class="col">
+        <div id="response-container"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    $(function() {
+      $("#submit-button").click(function() {
+        var url = $("#url-input").val();
+
+        $.ajax({
+          url: url,
+          method: "GET",
+          dataType: "text",
+          success: function(response) {
+            $("#response-container").html(response);
+          },
+          error: function(jqXHR, textStatus, errorThrown) {
+            $("#response-container").html("Error: " + errorThrown);
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>
