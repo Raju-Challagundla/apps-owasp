@@ -1,0 +1,5 @@
+<Resource name="mongodb/myMongoDB" auth="Container" type="com.mongodb.MongoClient"
+          factory="org.apache.naming.factory.BeanFactory"
+          singleton="true" destroyMethod="close"
+          username="your-username" password="your-password"
+          uri="mongodb://localhost:27017/mydatabase" />
