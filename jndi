@@ -1,0 +1,33 @@
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.jndi.JndiObjectFactoryBean;
+import org.springframework.beans.factory.config.BeanPostProcessor;
+import javax.naming.spi.ObjectFactory;
+
+@Configuration
+public class CustomJndiConfig {
+
+    @Bean
+    public BeanPostProcessor jndiObjectPostProcessor() {
+        return new JndiObjectPostProcessor();
+    }
+
+    public static class JndiObjectPostProcessor implements BeanPostProcessor {
+        @Override
+        public Object postProcessBeforeInitialization(Object bean, String beanName) {
+            if (bean instanceof JndiObjectFactoryBean) {
+                JndiObjectFactoryBean jndiFactoryBean = (JndiObjectFactoryBean) bean;
+                jndiFactoryBean.setPostProcessJndiObjectFactory(this::customizeJndiObjectFactory);
+            }
+            return bean;
+        }
+
+        private Object customizeJndiObjectFactory(Object jndiObject, String jndiName) throws Exception {
+            if (jndiObject instanceof MongoClient) {
+                // Return your custom JNDI factory instead of the original JNDI object
+                return new CustomJndiFactory();
+            }
+            return jndiObject;
+        }
+    }
+}
