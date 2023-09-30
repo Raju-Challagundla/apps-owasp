@@ -1,0 +1,25 @@
+#macro(pad $input $desiredLength $paddingChar $alignment)
+    #set($paddingLength = $desiredLength - $input.length())
+    #if($paddingLength > 0)
+        #set($padding = "")
+        #foreach($i in [1..$paddingLength])
+            #set($padding = "${padding}${paddingChar}")
+        #end
+        #if($alignment == "left")
+            ${padding}${input}
+        #elseif($alignment == "right")
+            ${input}${padding}
+        #else
+            Invalid alignment specified
+        #end
+    #else
+        $input
+    #end
+#end
+
+#set($originalString = "Hello")
+#set($leftPaddedString = "#pad($originalString 10 ' ' 'left')")
+#set($rightPaddedString = "#pad($originalString 10 ' ' 'right')")
+
+Left Padded String: $leftPaddedString
+Right Padded String: $rightPaddedString
